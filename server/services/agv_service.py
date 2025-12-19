@@ -91,6 +91,7 @@ def get_latest_cycle_id():
     return None
 
 def fetch_task_list(cycle_id: str):
+    init_firebase()
     db = get_db()
     snap = db.collection("cycles").document(cycle_id).get()
     

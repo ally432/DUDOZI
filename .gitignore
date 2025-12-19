@@ -9,3 +9,4 @@ __pycache__/
 firebase-adminsdk.json
 GUI/.qtcreator
 Python_3_10_11venv/
+venv
