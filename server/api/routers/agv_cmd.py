@@ -7,7 +7,7 @@ from services.agv_service import fetch_task_list, is_agv_running
 
 router = APIRouter(prefix="/agv", tags=["AGV Command (MQTT)"])
 
-MQTT_HOST = os.getenv("MQTT_HOST", "localhost") # 추후 ip주소 변경
+MQTT_HOST = os.getenv("MQTT_HOST", "172.20.10.9")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 
 def mqtt_publish(topic: str, payload: dict, qos: int = 1):
@@ -25,19 +25,6 @@ def mqtt_publish(topic: str, payload: dict, qos: int = 1):
 
 @router.post("/publish_zone_actions")
 def publish_zone_actions(agv_id: str, cycle_id: str):
-    """
-    Firestore(cycles/{cycle_id}.llm.task_list)에서 작업 목록을 꺼내
-    MQTT로 4개 영역을 한 번에 전송
-
-    Topic: agv/{agv_id}/zone_action  -> agv/AGV1/zone_action
-    Payload:
-    {
-      "commands": [
-        {"zone": "green", "action": "supply_fertilizer"},
-        ...
-      ]
-    }
-    """
     # STOP 상태면 publish X -> 무조건 START 해주고 하기!!
     if not is_agv_running(agv_id):
         return {"status": "ignored", "reason": "AGV STOPPED", "agv_id": agv_id}

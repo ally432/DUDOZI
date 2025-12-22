@@ -6,6 +6,7 @@ dataset/
 __pycache__/
 .env
 *.log
+*.jpg
 firebase-adminsdk.json
 GUI/.qtcreator
 Python_3_10_11venv/

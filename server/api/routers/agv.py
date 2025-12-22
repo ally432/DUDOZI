@@ -2,12 +2,9 @@ import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
-from services.agv_service import upload_and_analyze_observations, fetch_task_list
-from services.agv_service import set_agv_run_state, get_agv_run_state
-from services.agv_service import is_agv_running
-from services.agv_service import get_latest_cycle_id
-from services.agv_service import get_image_signed_url
-from services.agv_service import fetch_agv_observations, get_latest_cycle_id
+from services.agv_service import upload_and_analyze_observations, fetch_task_list, set_agv_run_state, get_agv_run_state, is_agv_running, get_image_signed_url, fetch_agv_observations, get_latest_cycle_id, save_task_result_to_firestore
+from datetime import datetime
+from .agv_cmd import mqtt_publish
 router = APIRouter(prefix="/agv", tags=["AGV Management"])
 
 # =================================
@@ -67,6 +64,10 @@ class UploadObservationRequest(BaseModel):
     timestamp: str        
     observations: List[ObservationIn]
 
+class ReportTaskResultIn(BaseModel):
+    cycle_id: str
+    result: Literal["success", "fail"]
+
 @router.post("/upload_observation")
 async def upload_observation(
     payload: str = Form(...),
@@ -125,6 +126,16 @@ def get_agv_data(cycle_id: str = None):
         
     return data
 
+@router.post("/report_task_result")
+def report_task_result(body: ReportTaskResultIn):
+    """
+    AGV -> 서버 완료 작업 보고 수신
+    """
+    try:
+        return save_task_result_to_firestore(body)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ===============================
 # AGV 사이클 제어
 # ===============================
@@ -134,19 +145,23 @@ class MissionRequest(BaseModel):
     timestamp: str
     
 @router.post("/start")
-def start_mission(req: MissionRequest):
-    """
-    AGV 한 사이클 시작 (YOLO 정찰 + 보급 시퀀스)
-    """
-    # MQTT 전송부 (주석 처리)
-    # mqtt.publish(f"agv/{req.agv_id}/cmd", {"action": "start", "cycle_id": req.cycle_id})
-    
-    print(f"\n🚀 [AGV START] 임무 시작 명령 수신")
-    print(f" - 사이클 ID: {req.cycle_id}")
-    print(f" - 시간: {req.timestamp}")
-    print(" - 상태: AGV가 노드별 YOLO 추론 및 보급 작업을 시작합니다.")
-    
-    return {"status": "success", "cycle_id": req.cycle_id}
+def start_agv(agv_id: str = "AGV1"):
+    cycle_id = datetime.now().strftime("%Y_%m_%d_%H%M")
+
+    topic = f"agv/{agv_id}/cmd"
+    payload = {
+        "type": "start",
+        "cycle_id": cycle_id
+    }
+
+    mqtt_publish(topic, payload, qos=1)
+
+    return {
+        "status": "sent",
+        "agv_id": agv_id,
+        "cycle_id": cycle_id,
+        "topic": topic
+    }
 
 @router.post("/pause")
 def pause_mission(agv_id: str = "AGV1"):

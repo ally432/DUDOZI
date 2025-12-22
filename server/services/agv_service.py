@@ -177,6 +177,18 @@ def get_image_signed_url(cycle_id: str, node: str):
     except Exception as e:
         print(f"이미지 URL 생성 실패: {e}")
         return None
+    
+def save_task_result_to_firestore(req):
+    init_firebase()
+    db = get_db()
+
+    db.collection("cycles").document(req.cycle_id).set({"task_result": req.result},merge=True)
+
+    return {
+        "status": "ok",
+        "cycle_id": req.cycle_id,
+        "task_result": req.result
+    }
 
 # =========================
 # Mock AGV Power State
