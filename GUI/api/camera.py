@@ -1,8 +1,11 @@
 import cv2
 import requests
 from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import Qt
 
-SERVER_URL = "http://localhost:8000"
+# SERVER_URL = "http://127.0.0.1:8000"
+SERVER_URL = "http://172.20.10.6:8888"
+AGV_STREAM_URL = "http://172.20.10.10:5000/video"
 AGV_ID = "AGV1"
 
 # --------------------------------
@@ -24,6 +27,20 @@ def send_move(self, direction: str):
 # --------------------------------
 # 카메라 프레임 업데이트 (GUI 호출)
 # --------------------------------
+def start_camera_stream(self):
+    if self.cap:
+        return
+
+    print("Connecting to AGV camera stream")
+    self.cap = cv2.VideoCapture(AGV_STREAM_URL)
+
+def stop_camera_stream(self):
+    if self.cap:
+        self.cap.release()
+        self.cap = None
+        self.ui.cameraView.setText("SYSTEM OFF")
+        self.ui.cameraView.setAlignment(Qt.AlignCenter)
+
 def update_camera(self):
     if not self.cap:
         return
